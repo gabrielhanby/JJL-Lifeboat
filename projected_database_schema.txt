@@ -1,0 +1,60 @@
+database.db
+	Contacts
+		UUID
+		IND
+		entity # Company, Person
+		prefix
+		first_name
+		middle_name
+		last_name
+		suffix
+		full_name
+		gender
+		date_of_birth
+		location_of_birth
+		social_security_number
+	Matters
+		UUID
+		IND
+		group
+		status
+		sub_status
+	Addresses
+		UUID
+		IND
+		street
+		city
+		county
+		state
+		zip
+		country
+		type
+		primary (bool)
+	Phone_Numbers
+		UUID
+		IND
+		phone_number
+		type
+		primary (bool)
+	Email_Addresses
+		UUID
+		IND
+		email_address
+		type
+		primary (bool)
+	Notes
+		UUID
+		IND
+		subject
+		body
+		created (yyyymmdd + "T" + HHMM (24h)) # When the row is created
+		updated (yyyymmdd + "T" + HHMM (24h)) # When the row is updated
+	Tracking
+		UUID
+		IND
+		created (yyyymmdd + "T" + HHMM (24h)) # When the UUID is created
+		state_filed
+		type # Company, Client, Lead, Witness, etc
+		tags
+	Registry
+		UUID
