@@ -7,16 +7,16 @@ request_counter = 0
 dispatch_timer = None
 timer_lock = threading.Lock()
 
-# References to shared state (set via initialize)
+# Shared state (set via initialize)
 conn = None
 cursor = None
 db_meta = None
 tools = {}
 
-# Store last results from dispatch
+# Store last results per process/tool
 last_results = {}
 
-# Timer thread handler
+# Timer handler
 def _start_dispatch_timer():
     global dispatch_timer
     with timer_lock:
@@ -25,7 +25,7 @@ def _start_dispatch_timer():
         dispatch_timer = threading.Timer(3.0, _dispatch_requests)
         dispatch_timer.start()
 
-# External API for submitting packages
+# Submit a new request (from CLI or test)
 def submit_request(pkg: dict):
     global request_counter
     request_counter += 1
@@ -33,7 +33,7 @@ def submit_request(pkg: dict):
     request_buffer[request_id] = pkg
     _start_dispatch_timer()
 
-# Internal: dispatch logic after timer expires
+# Dispatch after timer expires
 def _dispatch_requests():
     global last_results
     if not request_buffer:
@@ -41,49 +41,59 @@ def _dispatch_requests():
 
     buffered = copy.deepcopy(request_buffer)
     request_buffer.clear()
-
-    # Initialize grouped packages per tool
-    grouped = {
-        "create": {},
-        "read": {"UUID": []},
-        "update": {},
-        "delete": {}
-    }
-
-    # Merge requests by tool
-    for request in buffered.values():
-        for tool, content in request.items():
-            if tool == "create":
-                grouped["create"].update(content)
-            elif tool == "read":
-                uuids = content.get("UUID")
-                if isinstance(uuids, list):
-                    grouped["read"]["UUID"].extend(uuids)
-                else:
-                    grouped["read"]["UUID"].append(uuids)
-            elif tool == "update":
-                grouped["update"].update(content)
-            elif tool == "delete":
-                grouped["delete"].update(content)
-
     last_results = {}
 
-    # Dispatch tools synchronously in fixed order
-    for tool in ["create", "update", "delete", "read"]:
-        clumped_pkg = grouped.get(tool)
-        if clumped_pkg and tool in tools:
-            # Call the tool handler with its merged package
-            last_results[tool] = tools[tool](clumped_pkg, conn, cursor, db_meta)
+    # Merge all incoming packages into process_n blocks
+    process_n = {}
+    process_counter = 0
 
-    # Commit once after all write operations
+    for request in buffered.values():
+        for process_key, content in request.items():
+            if not process_key.startswith("process_"):
+                process_counter += 1
+                process_key = f"process_{process_counter}"
+            if process_key not in process_n:
+                process_n[process_key] = {
+                    "create": {},
+                    "update": {},
+                    "delete": {},
+                    "read": {"UUID": []},
+                    "search": {}
+                }
+
+            for tool, tool_data in content.items():
+                if tool == "create":
+                    process_n[process_key]["create"].update(tool_data)
+                elif tool == "update":
+                    process_n[process_key]["update"].update(tool_data)
+                elif tool == "delete":
+                    process_n[process_key]["delete"].update(tool_data)
+                elif tool == "read":
+                    uuids = tool_data.get("UUID", [])
+                    if isinstance(uuids, list):
+                        process_n[process_key]["read"]["UUID"].extend(uuids)
+                    else:
+                        process_n[process_key]["read"]["UUID"].append(uuids)
+                elif tool == "search":
+                    process_n[process_key]["search"].update(tool_data)
+
+    # Dispatch each process independently
+    for process_key, tools_block in process_n.items():
+        for tool in ["create", "update", "delete", "read", "search"]:
+            tool_data = tools_block.get(tool)
+            if tool_data and tool in tools:
+                result = tools[tool](tool_data, conn, cursor, db_meta)
+                last_results[f"{process_key}_{tool}"] = result
+
+    # Commit any writes after all processes run
     if conn:
         conn.commit()
 
-# External: fetch last dispatched results
+# Get last dispatch results
 def get_last_results():
     return last_results
 
-# One-time setup from CLI or main runner
+# One-time initialization from CLI/test
 def initialize(tool_handlers: dict, live_conn, live_cursor, meta):
     global tools, conn, cursor, db_meta
     tools = tool_handlers

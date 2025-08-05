@@ -1,0 +1,5 @@
+# Ignore everything inside /data
+/data/*
+
+# But allow this .gitignore file
+!/data/.gitignore
