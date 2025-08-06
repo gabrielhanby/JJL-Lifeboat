@@ -1,10 +1,19 @@
-def search_package(package: dict, conn, cursor, db_meta) -> dict:
+def handle(package: dict, conn, cursor, db_meta) -> dict:
+    result = {
+        "status": "success",
+        "errors": [],
+        "action": {
+            "matches": []
+        }
+    }
+
     try:
         search = package
         table_results = []
 
         for table, fields in search.items():
             if table not in db_meta["tables"]:
+                result["errors"].append(f"Table '{table}' does not exist.")
                 continue
 
             where_clauses = []
@@ -12,11 +21,11 @@ def search_package(package: dict, conn, cursor, db_meta) -> dict:
 
             for field, logic in fields.items():
                 if field not in db_meta["fields"][db_meta["tables"].index(table)]:
+                    result["errors"].append(f"Field '{field}' does not exist in table '{table}'.")
                     continue
 
                 field_clauses = []
 
-                # AND group
                 and_group = logic.get("and", [])
                 if and_group:
                     and_clauses = []
@@ -30,7 +39,6 @@ def search_package(package: dict, conn, cursor, db_meta) -> dict:
                     if and_clauses:
                         field_clauses.append("(" + " AND ".join(and_clauses) + ")")
 
-                # OR group
                 or_group = logic.get("or", [])
                 if or_group:
                     or_clauses = []
@@ -56,21 +64,13 @@ def search_package(package: dict, conn, cursor, db_meta) -> dict:
             table_results.append(uuids)
 
         if not table_results:
-            result = []
+            result["action"]["matches"] = []
         else:
-            matching_uuids = set.intersection(*table_results)
-            result = list(matching_uuids)
-
-        return {
-            "action": "search",
-            "status": "success",
-            "result": result
-        }
+            result["action"]["matches"] = list(set.intersection(*table_results))
 
     except Exception as e:
-        return {
-            "action": "search",
-            "status": "error",
-            "result": [],
-            "message": str(e)
-        }
+        result["status"] = "error"
+        result["errors"].append(str(e))
+        result["action"]["matches"] = []
+
+    return result

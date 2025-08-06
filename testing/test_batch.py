@@ -6,21 +6,39 @@ def main():
     # Step 1: Get shared environment
     conn, cursor, db_meta = connect.get_env()
 
-    # Step 2: Build test package with fixed UUID
+    # Step 2: Build CUD test package
     package = {
         "batch_1": {
             "process_1": {
                 "create": {
                     "group_1": {
-                        "_UUID": "cfe38ef0-0f21-4593-8a54-f0cfdc4e940b",
                         "table": ["Contacts", "Notes"],
                         "field": [
                             ["first_name", "middle_name", "last_name"],
                             ["subject", "body"]
                         ],
                         "value": [
-                            [["Gabriel", "Joseph", "Hanby"]],
-                            [["Create Test Results", "Create Successful"]]
+                            [["John", "Doe", "Lock"]],
+                            [["Test Results", "Test Successful"]]
+                        ]
+                    }
+                }
+            },
+            "process_2": {
+                "update": {
+                    "cfe38ef0-0f21-4593-8a54-f0cfdc4e940b": {
+                        "table": ["Contacts", "Notes"],
+                        "field": [
+                            ["first_name"],
+                            ["subject", "body"]
+                        ],
+                        "IND": [
+                            [0],
+                            ["new_1", "new_1"]
+                        ],
+                        "value": [
+                            ["Gabriel"],
+                            ["Batch Edit Note", "Batch Edit Successful"]
                         ]
                     }
                 }

@@ -15,7 +15,7 @@ def handle(package, conn, cursor, db_meta):
     }
 
     tables = db_meta["tables"]
-    affected = {}  # {table_name: set of UUIDs}
+    affected = {}  # Track UUIDs that need reindexing per table
 
     for uuid_key, data in package.items():
         where_list = data.get("where", [])
@@ -33,9 +33,8 @@ def handle(package, conn, cursor, db_meta):
                         result["action"]["deleted_rows"][table] = result["action"]["deleted_rows"].get(table, 0) + count
                         affected.setdefault(table, set()).add(uuid_key)
                 except Exception as e:
-                    result["errors"].append(f"{table}: {str(e)}")
+                    result["errors"].append(f"{table}[{uuid_key}]: {str(e)}")
 
-            # Try removing from Registry
             try:
                 cursor.execute("DELETE FROM Registry WHERE UUID = ?", (uuid_key,))
                 if cursor.rowcount:
@@ -62,9 +61,8 @@ def handle(package, conn, cursor, db_meta):
                         result["action"]["deleted_rows"][table_name] = result["action"]["deleted_rows"].get(table_name, 0) + count
                         affected.setdefault(table_name, set()).add(uuid_key)
                 except Exception as e:
-                    result["errors"].append(f"{table_name}[IND {ind}]: {str(e)}")
+                    result["errors"].append(f"{table_name}[{uuid_key}, IND {ind}]: {str(e)}")
 
-    # Reindex IND for all affected tables and UUIDs
     for table_name, uuid_set in affected.items():
         for uuid in uuid_set:
             reindex_inds_for_uuid(conn, cursor, table_name, uuid)

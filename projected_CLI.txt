@@ -1,0 +1,104 @@
+🧭 CLI Navigation System — Hanby CRUD
+
+──────────────────────────────────────────────
+📚 STRUCTURE OVERVIEW
+──────────────────────────────────────────────
+
+LAYERS (a.k.a. "Ladder") are the UI screens like Home, Create, Search, etc.
+
+• All known layers:
+  - Home
+  - Help
+  - Search
+  - List
+  - Create
+  - Update
+  - Delete
+
+• Layers do not exist in the ladder until first used.
+• Ladder is linear and directional (not circular).
+• Ladder allows forward/back movement only within bounds.
+• Layers are always reinserted above the current layer when called.
+
+──────────────────────────────────────────────
+🔁 LAYER ORDERING BEHAVIOR
+──────────────────────────────────────────────
+
+📌 On Launch:
+  - Ladder starts as:
+    0. Home  < Active
+    1. Help
+
+🧭 forward:
+  - Moves one layer UP (index -1)
+  - Fails at top:
+    → [System] You're at the top of the ladder.
+    → [System] Return to Home layer? (y/n)
+
+🔙 back:
+  - Moves one layer DOWN (index +1)
+  - Fails at bottom:
+    → [System] You're at the bottom of the ladder.
+    → [System] Return to Home layer? (y/n)
+
+🏠 home:
+  - Moves Home to just above current layer, and makes it active.
+  - If already at Home, does nothing.
+
+🧱 Calling a layer (e.g. "Create"):
+  - If the layer is already active:
+    → [System] You're already on the Create layer.
+  - If it exists in the ladder:
+    → Remove it from its current position
+  - Insert it directly above the current layer
+  - Set as active
+
+Example:
+
+Start:
+  0. Home  < Active
+  1. Help
+
+Call "Create":
+  0. Home
+  1. Create  < Active
+  2. Help
+
+Then "forward":
+  0. Home
+  1. Create
+  2. Help  < Active
+
+Then "Create" again:
+  → [System] You're already on the Create layer.
+
+──────────────────────────────────────────────
+🔚 EXIT RULES
+──────────────────────────────────────────────
+
+🛑 exit all:
+  - From any layer
+  - Always prompts:
+    → [System] Exit the application? (y/n)
+
+🚪 exit:
+  - From any layer
+  - Always jumps to:
+    → Home < Active
+
+🔙 back (at Home):
+  - Prompts:
+    → [System] Exit the application? (y/n)
+
+🛗 forward (at top):
+  - Prompts:
+    → [System] You're at the top of the ladder.
+    → [System] Return to Home layer? (y/n)
+
+──────────────────────────────────────────────
+📦 LAYER PERSISTENCE
+──────────────────────────────────────────────
+
+• Layers retain in-memory state when not active
+• Re-entering a layer restores its last data
+• Think of the ladder like a "stacked film strip" — moving through frames
