@@ -24,49 +24,53 @@ def handle(package: dict, conn, cursor, db_meta) -> dict:
                     result["errors"].append(f"Field '{field}' does not exist in table '{table}'.")
                     continue
 
-                field_clauses = []
-
                 and_group = logic.get("and", [])
-                if and_group:
-                    and_clauses = []
-                    for rule in and_group:
-                        if "equals" in rule:
-                            and_clauses.append(f"{field} = ?")
-                            parameters.append(rule["equals"])
-                        elif "contains" in rule:
-                            and_clauses.append(f"{field} LIKE ?")
-                            parameters.append(f"%{rule['contains']}%")
-                    if and_clauses:
-                        field_clauses.append("(" + " AND ".join(and_clauses) + ")")
-
                 or_group = logic.get("or", [])
-                if or_group:
-                    or_clauses = []
-                    for rule in or_group:
-                        if "equals" in rule:
-                            or_clauses.append(f"{field} = ?")
-                            parameters.append(rule["equals"])
-                        elif "contains" in rule:
-                            or_clauses.append(f"{field} LIKE ?")
-                            parameters.append(f"%{rule['contains']}%")
-                    if or_clauses:
-                        field_clauses.append("(" + " OR ".join(or_clauses) + ")")
 
-                if field_clauses:
-                    where_clauses.append("(" + " OR ".join(field_clauses) + ")")
+                and_clauses = []
+                or_clauses = []
+
+                for rule in and_group:
+                    if "equals" in rule:
+                        and_clauses.append(f"{field} = ?")
+                        parameters.append(rule["equals"])
+                    elif "contains" in rule:
+                        and_clauses.append(f"{field} LIKE ?")
+                        parameters.append(f"%{rule['contains']}%")
+
+                for rule in or_group:
+                    if "equals" in rule:
+                        or_clauses.append(f"{field} = ?")
+                        parameters.append(rule["equals"])
+                    elif "contains" in rule:
+                        or_clauses.append(f"{field} LIKE ?")
+                        parameters.append(f"%{rule['contains']}%")
+
+                field_condition_parts = []
+
+                if and_clauses:
+                    field_condition_parts.append("(" + " AND ".join(and_clauses) + ")")
+                if or_clauses:
+                    field_condition_parts.append("(" + " OR ".join(or_clauses) + ")")
+
+                if field_condition_parts:
+                    where_clauses.append("(" + " OR ".join(field_condition_parts) + ")")
 
             if not where_clauses:
                 continue
 
             sql = f"SELECT UUID FROM {table} WHERE " + " AND ".join(where_clauses)
             cursor.execute(sql, parameters)
-            uuids = set(row[0] for row in cursor.fetchall())
+            rows = cursor.fetchall()
+            uuids = set(row[0] for row in rows)
             table_results.append(uuids)
 
-        if not table_results:
-            result["action"]["matches"] = []
-        else:
+        if len(table_results) == 1:
+            result["action"]["matches"] = list(table_results[0])
+        elif table_results:
             result["action"]["matches"] = list(set.intersection(*table_results))
+        else:
+            result["action"]["matches"] = []
 
     except Exception as e:
         result["status"] = "error"

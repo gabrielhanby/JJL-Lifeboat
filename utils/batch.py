@@ -22,7 +22,6 @@ def handle_batch(raw_package: dict, conn, cursor, db_meta, tool_handlers: dict):
     }
 
     for batch_key, batch in raw_package.items():
-        # Reorganize batch into a single process
         reorganized = {
             "create": {},
             "update": {},
@@ -35,6 +34,30 @@ def handle_batch(raw_package: dict, conn, cursor, db_meta, tool_handlers: dict):
                 if not is_valid_data(tool_data):
                     continue
 
+                # ──────────────────────────────
+                # 🧪 Passthrough tools: read/search
+                # ──────────────────────────────
+                if tool not in ("create", "update", "delete"):
+                    try:
+                        output = tool_handlers[tool](tool_data, conn, cursor, db_meta)
+
+                        # 🧩 Only merge the actual action output (flattened)
+                        batch_result["action"].update(output.get("action", {}))
+
+                        if output.get("status") in ("error", "partial"):
+                            batch_result["status"] = "partial" if batch_result["status"] == "success" else "error"
+                            batch_result["errors"].extend(output.get("errors", []))
+
+                    except Exception as e:
+                        batch_result["status"] = "error"
+                        err_msg = f"{tool} failed: {str(e)}"
+                        batch_result["errors"].append(err_msg)
+
+                    continue
+
+                # ──────────────────────────────
+                # CUD Tools
+                # ──────────────────────────────
                 if tool == "create":
                     for _, group in tool_data.items():
                         group_id = f"group_{group_counter}"
@@ -42,35 +65,10 @@ def handle_batch(raw_package: dict, conn, cursor, db_meta, tool_handlers: dict):
                         group_counter += 1
                 elif tool in ("update", "delete"):
                     reorganized[tool].update(tool_data)
-                else:
-                    # Immediate passthrough for read/search
-                    if tool not in batch_result["action"]:
-                        batch_result["action"][tool] = []
 
-                    try:
-                        output = tool_handlers[tool](tool_data, conn, cursor, db_meta)
-                        wrapped = {
-                            "status": output.get("status", "unknown"),
-                            "errors": output.get("errors", []),
-                            "action": output.get("action", {})
-                        }
-                        batch_result["action"][tool].append(wrapped)
-
-                        if wrapped["status"] in ("error", "partial"):
-                            batch_result["status"] = "partial" if batch_result["status"] == "success" else "error"
-                            batch_result["errors"].extend(wrapped["errors"])
-
-                    except Exception as e:
-                        batch_result["status"] = "error"
-                        err_msg = f"{tool} failed: {str(e)}"
-                        batch_result["errors"].append(err_msg)
-                        batch_result["action"][tool].append({
-                            "status": "error",
-                            "errors": [err_msg],
-                            "action": {}
-                        })
-
-        # Run write tools in order: C → U → D
+        # ──────────────────────────────
+        # Run C → U → D in order
+        # ──────────────────────────────
         for tool in ["create", "update", "delete"]:
             if reorganized[tool] and tool in tool_handlers:
                 try:

@@ -1,38 +1,31 @@
-def handle(package, conn, cursor, db_meta):
+def handle(package: dict, conn, cursor, db_meta) -> dict:
     result = {
         "status": "success",
         "errors": [],
-        "action": {
-            "results": {}
-        }
+        "action": {}
     }
 
-    requested_uuids = package.get("UUID", [])
-    if isinstance(requested_uuids, str):
-        requested_uuids = [requested_uuids]
+    try:
+        uuids = package.get("UUID", [])
+        tables = [t for t in db_meta["tables"] if t not in ("Registry", "sqlite_sequence")]
 
-    tables = db_meta["tables"]
+        for uuid in uuids:
+            result["action"][uuid] = {}
 
-    for uuid in requested_uuids:
-        result["action"]["results"][uuid] = {}
-
-        for table in tables:
-            if table in ("sqlite_sequence", "Registry"):
-                continue
-
-            try:
-                cursor.execute(f"SELECT * FROM {table} WHERE UUID = ? ORDER BY IND ASC;", (uuid,))
+            for table in tables:
+                fields = db_meta["fields"][db_meta["tables"].index(table)]
+                sql = f"SELECT {', '.join(fields)} FROM {table} WHERE UUID = ? ORDER BY IND ASC"
+                cursor.execute(sql, (uuid,))
                 rows = cursor.fetchall()
-                col_names = [desc[0] for desc in cursor.description]
-                row_dicts = [dict(zip(col_names, row)) for row in rows]
-                result["action"]["results"][uuid][table] = row_dicts
-            except Exception as e:
-                result["errors"].append(f"{table}[{uuid}]: {str(e)}")
-                result["action"]["results"][uuid][table] = []
 
-    if result["errors"] and not result["action"]["results"]:
+                if rows:
+                    result["action"][uuid][table] = {
+                        "fields": fields,
+                        "rows": rows
+                    }
+
+    except Exception as e:
         result["status"] = "error"
-    elif result["errors"]:
-        result["status"] = "partial"
+        result["errors"].append(str(e))
 
     return result
