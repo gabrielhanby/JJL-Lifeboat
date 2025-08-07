@@ -1,3 +1,4 @@
+
 🧾 Carpathia CLI – System User Manual
 
 ──────────────────────────────────────────────  
@@ -183,6 +184,16 @@ Path: utils/connect.py
   }
 }
 
+✅ LIST  
+{
+  "process_1": {
+    "list": {
+      "UUID": "uuid_1",
+      "table": ["Contacts"]
+    }
+  }
+}
+
 ──────────────────────────────────────────────  
 ✅ TOOL RETURN FORMAT  
 ──────────────────────────────────────────────  
@@ -209,20 +220,21 @@ Each tool returns:
 ✔ SEARCH  
 { "matches": ["uuid_1", "uuid_2"] }
 
+✔ LIST  
+{ "results": { "Contacts": [[...], [...]] } }
+
 ──────────────────────────────────────────────  
-🧰 HOW TO RUN  
+🧪 TEST SCRIPT EXAMPLE – test_<tool>.py  
 ──────────────────────────────────────────────  
 
-1. CLI or script calls connect.py → opens conn, cursor, db_meta.
-2. CLI builds a batch-formatted package.
-3. Package sent to utils/batch.py.
-4. batch.py:
-   - Validates data
-   - Reorganizes write tools
-   - Dispatches tools in correct order
-   - Collects and returns merged result
-5. Output shown via CLI HUD (or printed by script)
+1. Import: connect.py and batch.py
+2. Import the tool (e.g., from tools import search)
+3. Build dispatch map:
+   tool_handlers = { "search": search.handle }
+4. Create a valid tool package for the target tool.
+5. Wrap it in a batch shell and send to handle_batch().
+6. Print the result.
 
 ──────────────────────────────────────────────  
 END OF MANUAL  
-──────────────────────────────────────────────
+──────────────────────────────────────────────  
