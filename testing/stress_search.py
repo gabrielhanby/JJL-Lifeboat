@@ -21,6 +21,9 @@ search_package = {
                     },
                     "entity_type": {
                         "and": [{"equals": "Lead"}]
+                    },
+                    "tags": {
+                        "nand": [{"contains": "new"}]
                     }
                 },
                 "Contacts": {
@@ -29,6 +32,9 @@ search_package = {
                     },
                     "gender": {
                         "and": [{"equals": "female"}]
+                    },
+                    "prefix": {
+                        "and": [{"is_null": True}]
                     }
                 },
                 "Notes": {

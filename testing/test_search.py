@@ -7,14 +7,14 @@ tool_handlers = {
     "search": search.handle
 }
 
-# Search package — looks for rows in Tracking where state_filed equals 'TX'
+# Search package — finds rows in Tracking where tags do NOT contain "new"
 search_package = {
     "batch_1": {
         "process_1": {
             "search": {
                 "Tracking": {
-                    "state_filed": {
-                        "and": [{"contains": "TX"}]
+                    "tags": {
+                        "nand": [{"contains": "new"}]
                     }
                 }
             }

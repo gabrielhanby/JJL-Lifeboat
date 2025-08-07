@@ -22,8 +22,8 @@ email_types = ["personal", "work"]
 phone_types = ["personal", "work"]
 tags = ["legal", "vip", "new", "internal", "follow-up"]
 genders = ["male", "female"]
-prefixes = ["Mr.", "Ms.", "Dr.", ""]
-suffixes = ["Jr.", "Sr.", "III", ""]
+prefixes = ["Mr.", "Ms.", "Dr.", None, None, None]
+suffixes = ["Jr.", "Sr.", "III", None, None, None]
 entity_types = ["Lead"]
 dob_years = [str(y) for y in range(1970, 2000)]
 
@@ -124,7 +124,7 @@ for i in range(3000):
         random.choice(genders),          # gender
         random.choice(dob_years),        # date_of_birth
         random.choice(cities),           # location_of_birth
-        ""                                # ssn
+        None                                # ssn
     ])
 
     # ADDRESSES

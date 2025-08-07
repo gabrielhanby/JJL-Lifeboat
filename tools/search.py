@@ -26,10 +26,15 @@ def handle(package: dict, conn, cursor, db_meta) -> dict:
 
                 and_group = logic.get("and", [])
                 or_group = logic.get("or", [])
+                nand_group = logic.get("nand", [])
+                nor_group = logic.get("nor", [])
 
                 and_clauses = []
                 or_clauses = []
+                nand_clauses = []
+                nor_clauses = []
 
+                # AND
                 for rule in and_group:
                     if "equals" in rule:
                         and_clauses.append(f"{field} = ?")
@@ -38,6 +43,7 @@ def handle(package: dict, conn, cursor, db_meta) -> dict:
                         and_clauses.append(f"{field} LIKE ?")
                         parameters.append(f"%{rule['contains']}%")
 
+                # OR
                 for rule in or_group:
                     if "equals" in rule:
                         or_clauses.append(f"{field} = ?")
@@ -46,12 +52,34 @@ def handle(package: dict, conn, cursor, db_meta) -> dict:
                         or_clauses.append(f"{field} LIKE ?")
                         parameters.append(f"%{rule['contains']}%")
 
+                # NAND
+                for rule in nand_group:
+                    if "equals" in rule:
+                        nand_clauses.append(f"{field} = ?")
+                        parameters.append(rule["equals"])
+                    elif "contains" in rule:
+                        nand_clauses.append(f"{field} LIKE ?")
+                        parameters.append(f"%{rule['contains']}%")
+
+                # NOR
+                for rule in nor_group:
+                    if "equals" in rule:
+                        nor_clauses.append(f"{field} = ?")
+                        parameters.append(rule["equals"])
+                    elif "contains" in rule:
+                        nor_clauses.append(f"{field} LIKE ?")
+                        parameters.append(f"%{rule['contains']}%")
+
                 field_condition_parts = []
 
                 if and_clauses:
                     field_condition_parts.append("(" + " AND ".join(and_clauses) + ")")
                 if or_clauses:
                     field_condition_parts.append("(" + " OR ".join(or_clauses) + ")")
+                if nand_clauses:
+                    field_condition_parts.append("NOT (" + " AND ".join(nand_clauses) + ")")
+                if nor_clauses:
+                    field_condition_parts.append("NOT (" + " OR ".join(nor_clauses) + ")")
 
                 if field_condition_parts:
                     where_clauses.append("(" + " OR ".join(field_condition_parts) + ")")
