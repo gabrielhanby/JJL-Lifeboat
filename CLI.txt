@@ -1,0 +1,56 @@
+🧾 Carpathia CLI – Design & Vision Guide  
+──────────────────────────────────────────────  
+
+📐 SCREEN DIMENSIONS  
+• Fixed size: 64 characters wide × 32 characters tall  
+• Each character is treated as a pixel (overwrites only)  
+• The screen is only redrawn on Enter (no real-time refresh)  
+
+🖥️ CURRENT UI STRUCTURE  
+The CLI renders a framed layout like so:  
+
+┌──────────────────────────────────────────────┐  
+│Carpathia CLI, Test.py                      │  
+├──────────────────────────────────────────────┤  
+│Last Input:                                  │  
+│Last Output:                                 │  
+└──────────────────────────────────────────────┘  
+> _  
+
+• The box has clean borders using ASCII characters.  
+• The input prompt `>` is placed on the final line outside the box.  
+• Cursor starts after `>` with one space buffer and accepts input.  
+
+📦 COMMAND HANDLING  
+Supported commands so far:  
+• `exit`     → Exits the CLI cleanly  
+• `refresh`  → Reprints the current UI  
+• invalid    → Displays `invalid command` in Last Output  
+
+When a command is typed and Enter is pressed:  
+1. The entire screen is cleared  
+2. The layout is redrawn  
+3. `Last Input:` is updated with the typed command  
+4. `Last Output:` is updated based on command status  
+
+🚧 RULES  
+• No real-time drawing or blinking cursor  
+• Do not allow deleting the `>` character  
+• All updates happen only after a command is entered  
+• Only one input line is active  
+• The CLI is structured for clarity, speed, and pixel-perfect consistency  
+
+🪜 CLI LADDER (planned, not implemented yet)  
+The "Ladder" will eventually manage screen layers, such as:  
+• Home  
+• Help  
+• Search  
+• Create  
+• Update  
+• Delete  
+Each ladder layer can override the frame content but retains the 64×32 constraint.  
+
+📌 VISION  
+This CLI is designed as a fully controlled visual terminal for database tools and command interactions. Its strict pixel model allows smooth screen transitions, minimal flicker, and deterministic UI rendering.
+
+It’s built for clarity, precision, and modular expansion, with commands and tools extending layer-by-layer as the system evolves.
